@@ -18,8 +18,10 @@ public class ValidationResult {
         return this;
     }
 
-    public ValidationResult merge(ValidationResult otherResult) {
-        errorMessages.addAll(otherResult.getErrorMessages());
+    public ValidationResult merge(boolean otherResult) {
+        if (!otherResult) {
+            errorMessages.add("Operación no válida.");
+        }
         return this;
     }
 
@@ -27,9 +29,9 @@ public class ValidationResult {
         return errorMessages.isEmpty();
     }
 
-    public static ValidationResult mergeAll(List<ValidationResult> results) {
-        return results.stream()
-                .reduce(new ValidationResult(), ValidationResult::merge);
+    public ValidationResult merge(ValidationResult otherResult) {
+        errorMessages.addAll(otherResult.getErrorMessages());
+        return this;
     }
 }
 

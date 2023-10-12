@@ -47,12 +47,12 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi</artifactId>
-			<version>5.0.0</version> <!-- Utiliza la última versión disponible -->
+			<version>4.1.2</version> <!-- Utiliza la última versión disponible -->
 		</dependency>
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
-			<version>5.0.0</version> <!-- Utiliza la última versión disponible -->
+			<version>4.1.2</version> <!-- Utiliza la última versión disponible -->
 		</dependency>
 		<dependency>
 			<groupId>javax.servlet</groupId>

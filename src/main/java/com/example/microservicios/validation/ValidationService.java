@@ -1,10 +1,10 @@
-package com.example.microservicios.service;
+package com.example.microservicios.validation;
 
-import com.example.microservicios.validation.ValidationResult;
-import org.springframework.stereotype.Service;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -12,28 +12,28 @@ import java.io.IOException;
 @Service
 public class ValidationService {
 
-    public ValidationResult validateCSVRecord(CSVRecord record) {
+    public boolean validateCSVRecord(CSVRecord record) {
         ValidationResult result = new ValidationResult();
 
         // Validar el campo de correo electrónico
-        String email = record.get("email");
+        String email = record.get(0);  // Accede por índice (0 para la primera columna)
         if (!isValidEmail(email)) {
             result.addErrorMessage("Correo electrónico inválido en línea: " + record.getRecordNumber());
         }
 
         // Validar el campo de fecha de nacimiento
-        String dateOfBirth = record.get("dateOfBirth");
+        String dateOfBirth = record.get(1);  // Accede por índice (1 para la segunda columna)
         if (!isValidDateOfBirth(dateOfBirth)) {
             result.addErrorMessage("Fecha de nacimiento inválida en línea: " + record.getRecordNumber());
         }
 
         // Validar el campo de título de trabajo
-        String jobTitle = record.get("jobTitle");
+        String jobTitle = record.get(2);  // Accede por índice (2 para la tercera columna)
         if (!isValidJobTitle(jobTitle)) {
             result.addErrorMessage("Título de trabajo inválido en línea: " + record.getRecordNumber());
         }
 
-        return result;
+        return result.isValid();
     }
 
     public ValidationResult validateTXTLine(String line) {
@@ -54,7 +54,22 @@ public class ValidationService {
         return result;
     }
 
-    public ValidationResult validateExcelRow(String filePath, int sheetIndex, int rowIndex) {
+    public boolean validateExcelFile(MultipartFile file) {
+        ValidationResult result = new ValidationResult();
+
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+            // Agrega tus validaciones de archivo Excel aquí según los requisitos de tu aplicación.
+            // Puedes verificar la estructura del archivo, número de hojas, formatos, etc.
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            result.addErrorMessage("Error al leer el archivo Excel");
+        }
+
+        return result.isValid();
+    }
+
+    public ValidationResult validateExcelData(String filePath, int sheetIndex, int rowIndex) {
         ValidationResult result = new ValidationResult();
 
         try (FileInputStream fileInputStream = new FileInputStream(filePath);
@@ -92,6 +107,42 @@ public class ValidationService {
         return result;
     }
 
+    public ValidationResult validateXLSXRow(Row row, Row headerRow) {
+        ValidationResult result = new ValidationResult();
+
+        // Obtener el índice de las columnas en función de los encabezados en headerRow
+        int emailColumnIndex = getColumnIndex(headerRow, "Email");
+        int dateOfBirthColumnIndex = getColumnIndex(headerRow, "Date of birth");
+        int jobTitleColumnIndex = getColumnIndex(headerRow, "Job Title");
+
+        if (emailColumnIndex < 0 || dateOfBirthColumnIndex < 0 || jobTitleColumnIndex < 0) {
+            result.addErrorMessage("Columnas requeridas no encontradas en el encabezado");
+        } else {
+            // Validar los campos de la fila del archivo Excel
+            Cell emailCell = row.getCell(emailColumnIndex);
+            Cell dateOfBirthCell = row.getCell(dateOfBirthColumnIndex);
+            Cell jobTitleCell = row.getCell(jobTitleColumnIndex);
+
+            String email = emailCell.getStringCellValue();
+            String dateOfBirth = dateOfBirthCell.getStringCellValue();
+            String jobTitle = jobTitleCell.getStringCellValue();
+
+            if (!isValidEmail(email)) {
+                result.addErrorMessage("Correo electrónico inválido en la fila: " + (row.getRowNum() + 1));
+            }
+
+            if (!isValidDateOfBirth(dateOfBirth)) {
+                result.addErrorMessage("Fecha de nacimiento inválida en la fila: " + (row.getRowNum() + 1));
+            }
+
+            if (!isValidJobTitle(jobTitle)) {
+                result.addErrorMessage("Título de trabajo inválido en la fila: " + (row.getRowNum() + 1));
+            }
+        }
+
+        return result;
+    }
+
     private boolean isValidEmail(String email) {
         // Implementar la validación de correo electrónico con una expresión regular
         String emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$";
@@ -122,5 +173,15 @@ public class ValidationService {
             }
         }
         return false; // Si no coincide con ninguno de los títulos válidos
+    }
+
+    // Método para encontrar el índice de la columna en función del encabezado
+    private int getColumnIndex(Row headerRow, String header) {
+        for (Cell cell : headerRow) {
+            if (cell.getStringCellValue().equalsIgnoreCase(header)) {
+                return cell.getColumnIndex();
+            }
+        }
+        return -1; // Devuelve -1 si no se encuentra la columna
     }
 }
